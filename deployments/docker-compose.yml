@@ -1,0 +1,53 @@
+version: "3"
+
+networks:
+  needys-api-resource:
+
+services:
+  needys-api-resource:
+    container_name: needys-api-resource
+    build:
+      context: ../
+      dockerfile: build/package/Dockerfile.development
+    ports:
+      - 8012:8012
+    volumes:
+      - ./../:/application
+    networks:
+      - needys-api-resource
+    healthcheck:
+      test: curl --fail http://localhost:8012/ready || exit 1
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  needys-api-resource-initialize-db:
+    container_name: needys-api-resource-initialize-db
+    image: curlimages/curl:7.77.0
+    command: --silent --fail --retry 60 --retry-delay 3 --retry-connrefused http://needys-api-resource:8012/initialize_db
+    networks:
+      - needys-api-resource
+    depends_on:
+      - needys-api-resource
+    restart: on-failure
+    healthcheck:
+      test: curl --fail http://needys-api-resource:8012/ready || exit 1
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  postgres:
+    container_name: postgres
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - 5432:5432
+    networks:
+      - needys-api-resource
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
