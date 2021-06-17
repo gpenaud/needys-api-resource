@@ -2,8 +2,12 @@ package main
 
 import (
   cmdline  "github.com/galdor/go-cmdline"
+  context  "context"
   internal "github.com/gpenaud/needys-api-resource/internal"
+  log      "github.com/sirupsen/logrus"
   os       "os"
+  signal   "os/signal"
+  syscall  "syscall"
 )
 
 func registerCliConfiguration(a *internal.Application) {
@@ -81,5 +85,22 @@ func main() {
   registerVersion(&a)
 
   a.Initialize()
-  a.Run()
+
+  c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+  go func() {
+		oscall := <-c
+
+    log.WithFields(log.Fields{
+      "scope": "system",
+      "signal": oscall,
+    }).Warn("received a system call")
+
+		cancel()
+	}()
+
+  a.Run(ctx)
 }

@@ -1,12 +1,14 @@
 package internal
 
 import (
+  context "context"
   fmt  "fmt"
   http "net/http"
   log  "github.com/sirupsen/logrus"
   _    "github.com/lib/pq"
   mux  "github.com/gorilla/mux"
   sql  "database/sql"
+  time "time"
 )
 
 type Configuration struct {
@@ -134,13 +136,13 @@ func (a *Application) initializeRoutes() {
   a.Router.HandleFunc("/initialize_db", a.InitializeDB).Methods("GET")
 }
 
-func (a *Application) Run() {
+func (a *Application) Run(ctx context.Context) {
   server_address :=
     fmt.Sprintf("%s:%s", a.Config.Server.Host, a.Config.Server.Port)
 
   server_message :=
     fmt.Sprintf(
-      "Starting needys-api-resource on %s:%s...\n > build time: %s\n > release: %s\n > commit: %s\n",
+      "starting needys-api-resource on %s:%s...\n > build time: %s\n > release: %s\n > commit: %s\n",
       a.Config.Server.Host,
       a.Config.Server.Port,
       a.Version.BuildTime,
@@ -148,6 +150,40 @@ func (a *Application) Run() {
       a.Version.Commit,
     )
 
-  log.Info(server_message)
-  log.Fatal(http.ListenAndServe(server_address, a.Router))
+  httpServer := &http.Server{
+		Addr:    server_address,
+		Handler: a.Router,
+	}
+
+  go func() {
+    log.Info(server_message)
+    log.Fatal(httpServer.ListenAndServe())
+  }()
+
+  <-ctx.Done()
+
+	log.Printf("server stopped")
+
+	ctxShutDown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer func() {
+		cancel()
+	}()
+
+  var err error
+
+	if err = httpServer.Shutdown(ctxShutDown); err != nil {
+    log.WithFields(log.Fields{
+      "scope": "system",
+      "error": err,
+    })
+		log.Fatal("server shutdown failed")
+	}
+
+	log.Info("server exited properly")
+
+	if err == http.ErrServerClosed {
+		err = nil
+	}
+
+	return
 }

@@ -13,8 +13,8 @@ type Resource struct {
 
 func (r *Resource) GetResource(db *sql.DB) error {
   log.WithFields(log.Fields{
+    "scope": "user",
     "type": "database query",
-    "called_by": "application",
     "parameter_id": r.ID,
   }).Debug("SELECT type, description FROM resources WHERE id=%d")
 
@@ -24,8 +24,8 @@ func (r *Resource) GetResource(db *sql.DB) error {
 
 func (r *Resource) UpdateResource(db *sql.DB) error {
   log.WithFields(log.Fields{
+    "scope": "user",
     "type": "database query",
-    "called_by": "application",
     "parameter_type": r.Type,
     "parameter_description": r.Description,
     "parameter_id": r.ID,
@@ -40,8 +40,8 @@ func (r *Resource) UpdateResource(db *sql.DB) error {
 
 func (r *Resource) DeleteResource(db *sql.DB) error {
   log.WithFields(log.Fields{
+    "scope": "user",
     "type": "database query",
-    "called_by": "application",
     "parameter_id": r.ID,
   }).Debug("DELETE FROM resources WHERE id=%d")
 
@@ -52,8 +52,8 @@ func (r *Resource) DeleteResource(db *sql.DB) error {
 
 func (r *Resource) CreateResource(db *sql.DB) error {
   log.WithFields(log.Fields{
+    "scope": "user",
     "type": "database query",
-    "called_by": "application",
     "parameter_type": r.Type,
     "parameter_description": r.Description,
     "parameter_id": r.ID,
@@ -72,8 +72,8 @@ func (r *Resource) CreateResource(db *sql.DB) error {
 
 func GetResources(db *sql.DB, start, count int) ([]Resource, error) {
   log.WithFields(log.Fields{
+    "scope": "user",
     "type": "database query",
-    "called_by": "application",
     "parameter_count": count,
     "parameter_start": start,
   }).Debug("SELECT id, type, description FROM resources LIMIT %d OFFSET %d")

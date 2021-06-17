@@ -95,7 +95,10 @@ func (a *Application) InitializeDB(w http.ResponseWriter, _ *http.Request) {
     respondWithError(w, http.StatusInternalServerError, "Database is not available")
   } else {
     if _, err = a.DB.Exec(dbInitQuery); err == nil {
-      respondWithJSON(w, http.StatusOK, "{'initialize': 'true'}")
+      payload := map[string]bool{
+        "initialized": true,
+      }
+      respondWithJSON(w, http.StatusOK, payload)
     } else {
       respondWithError(w, http.StatusInternalServerError, "Database is not initializable")
     }
@@ -106,7 +109,9 @@ func (a *Application) InitializeDB(w http.ResponseWriter, _ *http.Request) {
 // Resource handlers
 
 func (a *Application) getResources(w http.ResponseWriter, r *http.Request) {
-  log.Info("user - sent a GET query on /resources")
+  log.WithFields(log.Fields{
+    "scope": "user",
+  }).Info("sent a GET query on /resources")
 
   count, _ := strconv.Atoi(r.FormValue("count"))
   start, _ := strconv.Atoi(r.FormValue("start"))
@@ -131,7 +136,10 @@ func (a *Application) getResources(w http.ResponseWriter, r *http.Request) {
 func (a *Application) getResource(w http.ResponseWriter, r *http.Request) {
   vars := mux.Vars(r)
 
-  log.Info(fmt.Sprintf("user - sent a GET query on /resource/%s", vars["id"]))
+  log.WithFields(log.Fields{
+    "scope": "user",
+    "parameter_id": vars["id"],
+  }).Info("sent a GET query on /resource/%s")
 
   id, err := strconv.Atoi(vars["id"])
   if err != nil {
@@ -156,7 +164,9 @@ func (a *Application) getResource(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Application) createResource(w http.ResponseWriter, r *http.Request) {
-  log.Info("user - sent a POST query on /resource to create a new resource")
+  log.WithFields(log.Fields{
+    "scope": "user",
+  }).Info("sent a POST query on /resource to create a new resource")
 
   var resource resource.Resource
 
@@ -182,7 +192,10 @@ func (a *Application) createResource(w http.ResponseWriter, r *http.Request) {
 func (a *Application) updateResource(w http.ResponseWriter, r *http.Request) {
   vars := mux.Vars(r)
 
-  log.Info(fmt.Sprintf("user - sent a PUT query on /resource/%s to update the resource", vars["id"]))
+  log.WithFields(log.Fields{
+    "scope": "user",
+    "parameter_id": vars["id"],
+  }).Info("sent a PUT query on /resource/%s to update the resource")
 
   id, err := strconv.Atoi(vars["id"])
   if err != nil {
@@ -215,7 +228,10 @@ func (a *Application) updateResource(w http.ResponseWriter, r *http.Request) {
 func (a *Application) deleteResource(w http.ResponseWriter, r *http.Request) {
   vars := mux.Vars(r)
 
-  log.Info(fmt.Sprintf("user - sent a DELETE query on /resource/%s to delete the resource", vars["id"]))
+  log.WithFields(log.Fields{
+    "scope": "user",
+    "parameter_id": vars["id"],
+  }).Info("sent a DELETE query on /resource/%s to delete the resource")
 
   id, err := strconv.Atoi(vars["id"])
   if err != nil {
