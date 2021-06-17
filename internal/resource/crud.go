@@ -16,7 +16,7 @@ func (r *Resource) GetResource(db *sql.DB) error {
     "scope": "user",
     "type": "database query",
     "parameter_id": r.ID,
-  }).Debug("SELECT type, description FROM resources WHERE id=%d")
+  }).Debug("SELECT type, description FROM resources WHERE id={id}")
 
   return db.QueryRow("SELECT type, description FROM resources WHERE id=$1",
     r.ID).Scan(&r.Type, &r.Description)
@@ -29,7 +29,7 @@ func (r *Resource) UpdateResource(db *sql.DB) error {
     "parameter_type": r.Type,
     "parameter_description": r.Description,
     "parameter_id": r.ID,
-  }).Debug("UPDATE resources SET type=%s, description=%s WHERE id=%d")
+  }).Debug("UPDATE resources SET type={type}, description={description}s WHERE id={id}")
 
   _, err :=
     db.Exec("UPDATE resources SET type=$1, description=$2 WHERE id=$3",
@@ -43,7 +43,7 @@ func (r *Resource) DeleteResource(db *sql.DB) error {
     "scope": "user",
     "type": "database query",
     "parameter_id": r.ID,
-  }).Debug("DELETE FROM resources WHERE id=%d")
+  }).Debug("DELETE FROM resources WHERE id={id}")
 
   _, err := db.Exec("DELETE FROM resources WHERE id=$1", r.ID)
 
@@ -56,8 +56,7 @@ func (r *Resource) CreateResource(db *sql.DB) error {
     "type": "database query",
     "parameter_type": r.Type,
     "parameter_description": r.Description,
-    "parameter_id": r.ID,
-  }).Debug("INSERT INTO resources(type, description) VALUES(%s, %s) RETURNING id")
+  }).Debug("INSERT INTO resources(type, description) VALUES({type}, {description}) RETURNING id")
 
   err := db.QueryRow(
     "INSERT INTO resources(type, description) VALUES($1, $2) RETURNING id",
@@ -76,7 +75,7 @@ func GetResources(db *sql.DB, start, count int) ([]Resource, error) {
     "type": "database query",
     "parameter_count": count,
     "parameter_start": start,
-  }).Debug("SELECT id, type, description FROM resources LIMIT %d OFFSET %d")
+  }).Debug("SELECT id, type, description FROM resources LIMIT {count} OFFSET {start}")
 
   rows, err := db.Query(
     "SELECT id, type, description FROM resources LIMIT $1 OFFSET $2",

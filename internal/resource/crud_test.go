@@ -2,8 +2,10 @@ package resource_test
 
 import (
   bytes    "bytes"
+  fmt      "fmt"
   http     "net/http"
   httptest "net/http/httptest"
+  log      "github.com/sirupsen/logrus"
   internal "github.com/gpenaud/needys-api-resource/internal"
   json     "encoding/json"
   os       "os"
@@ -27,6 +29,10 @@ func TestMain(m *testing.M) {
   a.Config = &internal.Configuration{}
   a.Version = &internal.Version{}
 
+  a.Config.Verbosity         = "fatal"
+  a.Config.Environment       = "development"
+  a.Config.LogFormat         = "text"
+
   a.Config.Database.Host     = "0.0.0.0"
   a.Config.Database.Port     = "5432"
   a.Config.Database.Name     = "postgres"
@@ -44,7 +50,7 @@ func TestMain(m *testing.M) {
 
 func ensureTableExists() {
   if _, err := a.DB.Exec(tableCreationQuery); err != nil {
-    a.Logger.Fatal(err)
+    log.Fatal(err)
   }
 }
 
@@ -86,7 +92,8 @@ func TestEmptyTable(t *testing.T) {
 func TestGetNonExistentResource(t *testing.T) {
   clearTable()
 
-  req, _   := http.NewRequest("GET", "/resource/11", nil)
+  resource_id := "11"
+  req, _   := http.NewRequest("GET", fmt.Sprintf("/resource/%s", resource_id), nil)
   response := executeRequest(req)
 
   checkResponseCode(t, http.StatusNotFound, response.Code)
@@ -94,7 +101,7 @@ func TestGetNonExistentResource(t *testing.T) {
   var m map[string]string
   json.Unmarshal(response.Body.Bytes(), &m)
 
-  if m["error"] != "Resource not found" {
+  if m["error"] != fmt.Sprintf("The resource with ID %s is not found", resource_id) {
     t.Errorf("Expected the 'error' key of the response to be set to 'Resource not found'. Got '%s'", m["error"])
   }
 }

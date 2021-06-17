@@ -139,7 +139,7 @@ func (a *Application) getResource(w http.ResponseWriter, r *http.Request) {
   log.WithFields(log.Fields{
     "scope": "user",
     "parameter_id": vars["id"],
-  }).Info("sent a GET query on /resource/%s")
+  }).Info("sent a GET query on /resource/{id}")
 
   id, err := strconv.Atoi(vars["id"])
   if err != nil {
@@ -195,7 +195,7 @@ func (a *Application) updateResource(w http.ResponseWriter, r *http.Request) {
   log.WithFields(log.Fields{
     "scope": "user",
     "parameter_id": vars["id"],
-  }).Info("sent a PUT query on /resource/%s to update the resource")
+  }).Info("sent a PUT query on /resource/{id} to update the resource")
 
   id, err := strconv.Atoi(vars["id"])
   if err != nil {
@@ -231,7 +231,7 @@ func (a *Application) deleteResource(w http.ResponseWriter, r *http.Request) {
   log.WithFields(log.Fields{
     "scope": "user",
     "parameter_id": vars["id"],
-  }).Info("sent a DELETE query on /resource/%s to delete the resource")
+  }).Info("sent a DELETE query on /resource/{id} to delete the resource")
 
   id, err := strconv.Atoi(vars["id"])
   if err != nil {

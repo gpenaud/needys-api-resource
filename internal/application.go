@@ -80,6 +80,8 @@ func (a *Application) Initialize() {
 
 func (a *Application) initializeLogger() {
   switch a.Config.Verbosity {
+  case "fatal":
+    log.SetLevel(log.FatalLevel)
   case "error":
     log.SetLevel(log.ErrorLevel)
   case "warning":
