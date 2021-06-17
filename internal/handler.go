@@ -4,12 +4,21 @@ import (
   fmt      "fmt"
   http     "net/http"
   json     "encoding/json"
-  log      "github.com/sirupsen/logrus"
+  log       "github.com/sirupsen/logrus"
   resource "github.com/gpenaud/needys-api-resource/internal/resource"
   mux      "github.com/gorilla/mux"
   sql      "database/sql"
   strconv  "strconv"
 )
+
+var handlerLog *log.Entry
+
+func init() {
+  handlerLog = log.WithFields(log.Fields{
+    "_file": "internal/handler.go",
+    "_type": "user",
+  })
+}
 
 // -------------------------------------------------------------------------- //
 // Common functions for handlers
@@ -19,13 +28,13 @@ func respondHTTPCodeOnly(w http.ResponseWriter, code int) {
 }
 
 func respondWithError(w http.ResponseWriter, code int, message string) {
-  log.Error(message)
+  handlerLog.Error(message)
   respondWithJSON(w, code, map[string]string{"error": message})
 }
 
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
   response, _ := json.Marshal(payload)
-  log.Debug(fmt.Sprintf("JSON response: %s", response))
+  handlerLog.Debug(fmt.Sprintf("JSON response: %s", response))
 
   w.Header().Set("Content-Type", "application/json")
   w.WriteHeader(code)
@@ -41,7 +50,7 @@ func (a *Application) isHealthy(w http.ResponseWriter, _ *http.Request) {
   }
 
   if a.Config.LogHealthcheck {
-    log.Debug("healthcheck - sent a GET request on /healthy")
+    handlerLog.Debug("sent a GET request on /healthy")
     respondWithJSON(w, http.StatusOK, payload)
   } else {
     respondHTTPCodeOnly(w, http.StatusOK)
@@ -50,7 +59,7 @@ func (a *Application) isHealthy(w http.ResponseWriter, _ *http.Request) {
 
 func (a *Application) isReady(w http.ResponseWriter, _ *http.Request) {
   if a.Config.LogHealthcheck {
-    log.Debug("healthcheck - sent a GET request on /ready")
+    handlerLog.Debug("sent a GET request on /ready")
 
     if err := a.isDatabaseReachable(); err != nil {
       respondWithError(w, http.StatusInternalServerError, "database is not available")
@@ -109,9 +118,7 @@ func (a *Application) InitializeDB(w http.ResponseWriter, _ *http.Request) {
 // Resource handlers
 
 func (a *Application) getResources(w http.ResponseWriter, r *http.Request) {
-  log.WithFields(log.Fields{
-    "scope": "user",
-  }).Info("sent a GET query on /resources")
+  handlerLog.Info("sent a GET query on /resources")
 
   count, _ := strconv.Atoi(r.FormValue("count"))
   start, _ := strconv.Atoi(r.FormValue("start"))
@@ -136,8 +143,7 @@ func (a *Application) getResources(w http.ResponseWriter, r *http.Request) {
 func (a *Application) getResource(w http.ResponseWriter, r *http.Request) {
   vars := mux.Vars(r)
 
-  log.WithFields(log.Fields{
-    "scope": "user",
+  handlerLog.WithFields(log.Fields{
     "parameter_id": vars["id"],
   }).Info("sent a GET query on /resource/{id}")
 
@@ -164,9 +170,7 @@ func (a *Application) getResource(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Application) createResource(w http.ResponseWriter, r *http.Request) {
-  log.WithFields(log.Fields{
-    "scope": "user",
-  }).Info("sent a POST query on /resource to create a new resource")
+  handlerLog.Info("sent a POST query on /resource to create a new resource")
 
   var resource resource.Resource
 
@@ -192,8 +196,7 @@ func (a *Application) createResource(w http.ResponseWriter, r *http.Request) {
 func (a *Application) updateResource(w http.ResponseWriter, r *http.Request) {
   vars := mux.Vars(r)
 
-  log.WithFields(log.Fields{
-    "scope": "user",
+  handlerLog.WithFields(log.Fields{
     "parameter_id": vars["id"],
   }).Info("sent a PUT query on /resource/{id} to update the resource")
 
@@ -228,8 +231,7 @@ func (a *Application) updateResource(w http.ResponseWriter, r *http.Request) {
 func (a *Application) deleteResource(w http.ResponseWriter, r *http.Request) {
   vars := mux.Vars(r)
 
-  log.WithFields(log.Fields{
-    "scope": "user",
+  handlerLog.WithFields(log.Fields{
     "parameter_id": vars["id"],
   }).Info("sent a DELETE query on /resource/{id} to delete the resource")
 

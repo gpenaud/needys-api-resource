@@ -5,7 +5,7 @@ import (
   fmt      "fmt"
   http     "net/http"
   httptest "net/http/httptest"
-  log      "github.com/sirupsen/logrus"
+  log      "github.com/gpenaud/needys-api-resource/pkg/log"
   internal "github.com/gpenaud/needys-api-resource/internal"
   json     "encoding/json"
   os       "os"

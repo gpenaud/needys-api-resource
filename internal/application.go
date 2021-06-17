@@ -11,6 +11,15 @@ import (
   time "time"
 )
 
+var applicationLog *log.Entry
+
+func init() {
+  applicationLog = log.WithFields(log.Fields{
+    "_file": "internal/application.go",
+    "_type": "system",
+  })
+}
+
 type Configuration struct {
   Environment    string
   Verbosity      string
@@ -46,7 +55,6 @@ type Application struct {
 }
 
 func (a *Application) Initialize() {
-  log.Info("system - application is initializing...")
   connectionString :=
     fmt.Sprintf(
       "host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
@@ -60,7 +68,7 @@ func (a *Application) Initialize() {
   var err error
 
   if a.DB, err = sql.Open("postgres", connectionString); err != nil {
-    log.Error(err)
+    applicationLog.Error(err)
   }
 
   a.Router = mux.NewRouter()
@@ -68,14 +76,14 @@ func (a *Application) Initialize() {
   a.initializeLogger()
   a.initializeRoutes()
 
-  log.WithFields(log.Fields{
+  applicationLog.WithFields(log.Fields{
     "database_host": a.Config.Database.Host,
     "database_port": a.Config.Database.Port,
     "database_username": a.Config.Database.Username,
     "database_name":   a.Config.Database.Name,
-  }).Info("system - trying to connect to database")
+  }).Info("trying to connect to database")
 
-  log.Print("system - application initialized !")
+  applicationLog.Info("application is initialized")
 }
 
 func (a *Application) initializeLogger() {
@@ -144,7 +152,19 @@ func (a *Application) Run(ctx context.Context) {
 
   server_message :=
     fmt.Sprintf(
-      "starting needys-api-resource on %s:%s...\n > build time: %s\n > release: %s\n > commit: %s\n",
+  `
+
+START INFORMATIONS
+------------------
+Listening needys-api-resource on %s:%s...
+
+BUILD INFORMATIONS
+------------------
+time: %s
+release: %s
+commit: %s
+
+`,
       a.Config.Server.Host,
       a.Config.Server.Port,
       a.Version.BuildTime,
@@ -158,13 +178,14 @@ func (a *Application) Run(ctx context.Context) {
 	}
 
   go func() {
+    // we keep this log on standard format
     log.Info(server_message)
-    log.Fatal(httpServer.ListenAndServe())
+    applicationLog.Fatal(httpServer.ListenAndServe())
   }()
 
   <-ctx.Done()
 
-	log.Printf("server stopped")
+  applicationLog.Info("server stopped")
 
 	ctxShutDown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer func() {
@@ -174,14 +195,12 @@ func (a *Application) Run(ctx context.Context) {
   var err error
 
 	if err = httpServer.Shutdown(ctxShutDown); err != nil {
-    log.WithFields(log.Fields{
-      "scope": "system",
+    applicationLog.WithFields(log.Fields{
       "error": err,
-    })
-		log.Fatal("server shutdown failed")
+    }).Fatal("server shutdown failed")
 	}
 
-	log.Info("server exited properly")
+  applicationLog.Info("server exited properly")
 
 	if err == http.ErrServerClosed {
 		err = nil

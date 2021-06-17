@@ -1,7 +1,7 @@
 package resource
 
 import (
-  log  "github.com/sirupsen/logrus"
+  log "github.com/sirupsen/logrus"
   sql "database/sql"
 )
 
@@ -11,9 +11,17 @@ type Resource struct {
   Description string `json:"description"`
 }
 
+var resourceLog *log.Entry
+
+func init() {
+  resourceLog = log.WithFields(log.Fields{
+    "_file": "internal/resource/crud.go",
+    "_type": "user",
+  })
+}
+
 func (r *Resource) GetResource(db *sql.DB) error {
-  log.WithFields(log.Fields{
-    "scope": "user",
+  resourceLog.WithFields(log.Fields{
     "type": "database query",
     "parameter_id": r.ID,
   }).Debug("SELECT type, description FROM resources WHERE id={id}")
@@ -23,8 +31,7 @@ func (r *Resource) GetResource(db *sql.DB) error {
 }
 
 func (r *Resource) UpdateResource(db *sql.DB) error {
-  log.WithFields(log.Fields{
-    "scope": "user",
+  resourceLog.WithFields(log.Fields{
     "type": "database query",
     "parameter_type": r.Type,
     "parameter_description": r.Description,
@@ -39,8 +46,7 @@ func (r *Resource) UpdateResource(db *sql.DB) error {
 }
 
 func (r *Resource) DeleteResource(db *sql.DB) error {
-  log.WithFields(log.Fields{
-    "scope": "user",
+  resourceLog.WithFields(log.Fields{
     "type": "database query",
     "parameter_id": r.ID,
   }).Debug("DELETE FROM resources WHERE id={id}")
@@ -51,8 +57,7 @@ func (r *Resource) DeleteResource(db *sql.DB) error {
 }
 
 func (r *Resource) CreateResource(db *sql.DB) error {
-  log.WithFields(log.Fields{
-    "scope": "user",
+  resourceLog.WithFields(log.Fields{
     "type": "database query",
     "parameter_type": r.Type,
     "parameter_description": r.Description,
@@ -70,8 +75,7 @@ func (r *Resource) CreateResource(db *sql.DB) error {
 }
 
 func GetResources(db *sql.DB, start, count int) ([]Resource, error) {
-  log.WithFields(log.Fields{
-    "scope": "user",
+  resourceLog.WithFields(log.Fields{
     "type": "database query",
     "parameter_count": count,
     "parameter_start": start,

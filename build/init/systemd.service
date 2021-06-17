@@ -1,0 +1,18 @@
+[Unit]
+Description=Handle resource objects and queries for Needys application
+After=network-online.target
+
+[Service]
+Type=simple
+
+User=${NEEDYS_API_RESOURCE_USER:-needys-api-resource}
+Group=${NEEDYS_API_RESOURCE_GROUP:-needys-api-resource}
+UMask=007
+
+ExecStart=${NEEDYS_API_RESOURCE_BINARY_PATH:-}/needys-api-resource ${NEEDYS_API_RESOURCE_OPTIONS:-"--database.host 0.0.0.0"}
+
+Restart=on-failure
+TimeoutStopSec=300
+
+[Install]
+WantedBy=multi-user.target

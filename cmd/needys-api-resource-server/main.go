@@ -78,14 +78,22 @@ func registerVersion(a *internal.Application) {
   a.Version = &internal.Version{BuildTime, Commit, Release}
 }
 
-func main() {
-  a := internal.Application{}
+var mainLog *log.Entry
+var a        internal.Application
+
+func init() {
+  mainLog = log.WithFields(log.Fields{
+    "_file": "cmd/needys-api-resource-server/main.go",
+    "_type": "system",
+  })
 
   registerCliConfiguration(&a)
   registerVersion(&a)
 
   a.Initialize()
+}
 
+func main() {
   c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
@@ -94,8 +102,7 @@ func main() {
   go func() {
 		oscall := <-c
 
-    log.WithFields(log.Fields{
-      "scope": "system",
+    mainLog.WithFields(log.Fields{
       "signal": oscall,
     }).Warn("received a system call")
 
