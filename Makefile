@@ -59,8 +59,7 @@ logs:
 
 .PHONY: test
 test:
-	@APP_DB_HOST=0.0.0.0 APP_DB_PORT=5432 APP_DB_USERNAME=postgres APP_DB_PASSWORD=postgres APP_DB_NAME=postgres \
-	go test -v ./...
+	go test -v ./... --godog.format=pretty --godog.random -race -covermode=atomic
 
 ## docker - build the needys-api-resource image
 .PHONY: build
@@ -78,6 +77,6 @@ test-list:
 test-create:
 	curl -i \
 		-H "Content-Type: application/json" \
-		-d '{"description":"dormir", "needId":"3"}' \
+		-d '{"type": "physique", "description": "Du bon gros sexe en chambre"}' \
 		-X POST \
-	http://localhost:8012/strategy
+	http://localhost:8012/resource

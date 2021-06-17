@@ -175,8 +175,8 @@ func (a *Application) createResource(w http.ResponseWriter, r *http.Request) {
   var resource resource.Resource
 
   decoder := json.NewDecoder(r.Body)
-
   err := decoder.Decode(&resource)
+
   if err != nil {
     respondWithError(w, http.StatusBadRequest, "The payload is invalid")
     return

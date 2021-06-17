@@ -1,195 +1,110 @@
 package resource_test
 
-import (
-  bytes    "bytes"
-  fmt      "fmt"
-  http     "net/http"
-  httptest "net/http/httptest"
-  log      "github.com/gpenaud/needys-api-resource/pkg/log"
-  internal "github.com/gpenaud/needys-api-resource/internal"
-  json     "encoding/json"
-  os       "os"
-  testing  "testing"
-  // strconv  "strconv"
-  // bytes    "bytes"
- )
+import(
+	bytes  "bytes"
+	colors   "github.com/cucumber/godog/colors"
+	flag     "github.com/spf13/pflag"
+	fmt 		 "fmt"
+	godog    "github.com/cucumber/godog"
+	http 		 "net/http"
+	internal "github.com/gpenaud/needys-api-resource/internal"
+	os 			 "os"
+	testing  "testing"
+	"encoding/json"
+)
 
-const tableCreationQuery = `
-  CREATE TABLE IF NOT EXISTS resources (
-    id SERIAL,
-    type TEXT NOT NULL,
-    description TEXT NOT NULL,
-    CONSTRAINT resources_pkey PRIMARY KEY (id)
-  )`
+var application internal.Application
 
-var a internal.Application
+func init() {
+	godog.BindCommandLineFlags("godog.", &opts)
+
+	application.Version = &internal.Version{}
+	application.Config = &internal.Configuration{}
+
+	application.Config.Verbosity 	 = "fatal"
+	application.Config.Environment = "development"
+	application.Config.LogFormat 	 = "text"
+	application.Config.Server.Host = "0.0.0.0"
+	application.Config.Server.Port = "8012"
+}
+
+var opts = godog.Options{
+  Output: colors.Colored(os.Stdout),
+  Format: "progress", // can define default values
+}
+
+func InitializeScenario(ctx *godog.ScenarioContext) {
+	ctx.Step(`^I send "([^"]*)" request to "([^"]*)"$`, iSendRequestTo)
+	ctx.Step(`^the response code should be (\d+)$`, theResponseCodeShouldBe)
+}
 
 func TestMain(m *testing.M) {
+	flag.Parse()
+	opts.Paths = flag.Args()
 
-  a.Config = &internal.Configuration{}
-  a.Version = &internal.Version{}
+	status := godog.TestSuite{
+		Name: "godogs",
+		// TestSuiteInitializer: InitializeTestSuite,
+		ScenarioInitializer: InitializeScenario,
+		Options: &opts,
+	}.Run()
 
-  a.Config.Verbosity         = "fatal"
-  a.Config.Environment       = "development"
-  a.Config.LogFormat         = "text"
-
-  a.Config.Database.Host     = "0.0.0.0"
-  a.Config.Database.Port     = "5432"
-  a.Config.Database.Name     = "postgres"
-  a.Config.Database.Username = "postgres"
-  a.Config.Database.Password = "postgres"
-
-  a.Initialize()
-  ensureTableExists()
-
-  code := m.Run()
-
-  clearTable()
-  os.Exit(code)
+	os.Exit(status)
 }
 
-func ensureTableExists() {
-  if _, err := a.DB.Exec(tableCreationQuery); err != nil {
-    log.Fatal(err)
-  }
-}
+var res *http.Response
 
-func clearTable() {
-  a.DB.Exec("DELETE FROM resources")
-  a.DB.Exec("ALTER SEQUENCE resources_id_seq RESTART WITH 1")
-}
+func iSendRequestTo(method, endpoint string) error {
+	client := &http.Client{}
 
-func executeRequest(req *http.Request) *httptest.ResponseRecorder {
-  rr := httptest.NewRecorder()
-  a.Router.ServeHTTP(rr, req)
+	server := fmt.Sprintf("http://%s:%s",
+		application.Config.Server.Host,
+		application.Config.Server.Port,
+	)
 
-  return rr
-}
+	var data map[string]string
 
-func checkResponseCode(t *testing.T, expected, actual int) {
-  if expected != actual {
-    t.Errorf("Expected response code %d. Got %d\n", expected, actual)
-  }
-}
+	switch endpoint {
+	case "/POST":
+		data = map[string]string{
+			"type": "outdoor",
+			"description": "Du bon gros sexe des familles !",
+		}
+	case "/PUT":
+		data = map[string]string{
+			"id": "3",
+			"description": "Du bon gros sexe, mais sans la famille cette fois !",
+		}
+	default:
+		data = map[string]string{}
+	}
 
-func addResource() {
-  a.DB.Exec("INSERT INTO resources(type, description) VALUES('place', 'aller me balader sur le sentier')")
-}
+	payload, err := json.Marshal(data)
 
-func TestEmptyTable(t *testing.T) {
-  clearTable()
+  req, err := http.NewRequest(method, server+endpoint, bytes.NewBuffer(payload))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; param=value")
 
-  req, _   := http.NewRequest("GET", "/resources", nil)
-  response := executeRequest(req)
+	if err != nil {
+		return fmt.Errorf("could not create request %s", err.Error())
+	}
 
-  checkResponseCode(t, http.StatusOK, response.Code)
-
-  if body := response.Body.String(); body != "[]" {
-    t.Errorf("Expected an empty array. Got %s", body)
-  }
-}
-
-func TestGetNonExistentResource(t *testing.T) {
-  clearTable()
-
-  resource_id := "11"
-  req, _   := http.NewRequest("GET", fmt.Sprintf("/resource/%s", resource_id), nil)
-  response := executeRequest(req)
-
-  checkResponseCode(t, http.StatusNotFound, response.Code)
-
-  var m map[string]string
-  json.Unmarshal(response.Body.Bytes(), &m)
-
-  if m["error"] != fmt.Sprintf("The resource with ID %s is not found", resource_id) {
-    t.Errorf("Expected the 'error' key of the response to be set to 'Resource not found'. Got '%s'", m["error"])
-  }
-}
-
-func TestCreateResource(t *testing.T) {
-  clearTable()
-
-  var jsonStr = []byte(`{"type":"human", "description": "appeler yann pour discuter"}`)
-  req, _ := http.NewRequest("POST", "/resource", bytes.NewBuffer(jsonStr))
-  req.Header.Set("Content-Type", "application/json")
-
-  response := executeRequest(req)
-  checkResponseCode(t, http.StatusCreated, response.Code)
-
-  var m map[string]interface{}
-  json.Unmarshal(response.Body.Bytes(), &m)
-
-  if m["type"] != "human" {
-    t.Errorf("Expected resource type to be 'human'. Got '%v'", m["type"])
+ 	res, err = client.Do(req)
+  if err != nil {
+    return fmt.Errorf("could not send request %s", err.Error())
   }
 
-  if m["description"] != "appeler yann pour discuter" {
-    t.Errorf("Expected resource description to be 'appeler yann pour discuter'. Got '%v'", m["description"])
-  }
+	// TODO find a soltion to clean database between test calls
+	// if (endpoint != "initialize_db") {
+	// 	iSendRequestTo("GET", "initialize_db")
+	// }
 
-  // the id is compared to 1.0 because JSON unmarshaling converts numbers to
-  // floats, when the target is a map[string]interface{}
-  if m["id"] != 1.0 {
-    t.Errorf("Expected resource ID to be '1'. Got '%v'", m["id"])
-  }
+	return nil
 }
 
-func TestGetResource(t *testing.T) {
-  clearTable()
-  addResource()
+func theResponseCodeShouldBe(code int) error {
+	if code != res.StatusCode {
+		return fmt.Errorf("expected response code to be: %d, but actual is: %d", code, res.StatusCode)
+	}
 
-  req, _ := http.NewRequest("GET", "/resource/1", nil)
-  response := executeRequest(req)
-
-  checkResponseCode(t, http.StatusOK, response.Code)
-}
-
-func TestUpdateResource(t *testing.T) {
-  clearTable()
-  addResource()
-
-  req, _   := http.NewRequest("GET", "/resource/1", nil)
-  response := executeRequest(req)
-
-  var originalResource map[string]interface{}
-  json.Unmarshal(response.Body.Bytes(), &originalResource)
-
-  var jsonStr = []byte(`{"type":"place", "description": "aller me balader sur le chemin"}`)
-  req, _ = http.NewRequest("PUT", "/resource/1", bytes.NewBuffer(jsonStr))
-  req.Header.Set("Content-Type", "application/json")
-
-  response = executeRequest(req)
-  checkResponseCode(t, http.StatusOK, response.Code)
-
-  var m map[string]interface{}
-  json.Unmarshal(response.Body.Bytes(), &m)
-
-  if m["id"] != originalResource["id"] {
-      t.Errorf("Expected the id to remain the same (%v). Got %v", originalResource["id"], m["id"])
-  }
-
-  if m["type"] != originalResource["type"] {
-      t.Errorf("Expected the type to change from '%v' to '%v'. Got '%v'", originalResource["type"], m["type"], m["type"])
-  }
-
-  if m["description"] == originalResource["description"] {
-      t.Errorf("Expected the description to change from '%v' to '%v'. Got '%v'", originalResource["description"], m["description"], m["description"])
-  }
-}
-
-func TestDeleteResource(t *testing.T) {
-  clearTable()
-  addResource()
-
-  req, _ := http.NewRequest("GET", "/resource/1", nil)
-  response := executeRequest(req)
-  checkResponseCode(t, http.StatusOK, response.Code)
-
-  req, _ = http.NewRequest("DELETE", "/resource/1", nil)
-  response = executeRequest(req)
-  checkResponseCode(t, http.StatusOK, response.Code)
-
-  req, _ = http.NewRequest("GET", "/resource/1", nil)
-  response = executeRequest(req)
-  checkResponseCode(t, http.StatusNotFound, response.Code)
+	return nil
 }
