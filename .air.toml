@@ -14,7 +14,7 @@ bin = "tmp/app"
 
 # Customize binary.
 # This is how you start to run your application. Since my application will works like CLI, so to run it, like to make a CLI call.
-full_bin = "./needys-api-resource --server.host 0.0.0.0 --database.host postgres"
+full_bin = "./needys-api-resource --server.host 0.0.0.0 --database.host postgres --environment ${ENVIRONMENT} --verbosity ${VERBOSITY} --log-format ${LOG_FORMAT} ${OPTIONAL_FLAGS:-}"
 
 # This log file places in your tmp_dir.
 log = "air_errors.log"

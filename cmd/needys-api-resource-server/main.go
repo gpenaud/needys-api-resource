@@ -12,30 +12,47 @@ func registerCliConfiguration(a *internal.Application) {
   a.Config = &internal.Configuration{}
 
   // application configuration flags
-  cmdline.AddOption("", "language", "LANGUAGE", "language of application (EN/FR ...)")
-  cmdline.SetOptionDefault("language", "EN")
+  cmdline.AddOption("e", "environment", "ENVIRONMENT", "the current environment (development, integration, production)")
+  cmdline.SetOptionDefault("environment", "production")
+
+  cmdline.AddOption("v", "verbosity", "LEVEL", "verbosity for log-level (error, warning, info, debug)")
+  cmdline.SetOptionDefault("verbosity", "info")
+
+  cmdline.AddOption("l", "log-format", "FORMAT", "log format (text, json)")
+  cmdline.SetOptionDefault("log-format", "unset")
+
+  cmdline.AddFlag("", "log-healthcheck", "log healthcheck queries")
+
   // application server configuration flags
   cmdline.AddOption("", "server.host", "HOST", "host of application")
   cmdline.SetOptionDefault("server.host", "localhost")
+
   cmdline.AddOption("", "server.port", "PORT", "port of application")
   cmdline.SetOptionDefault("server.port", "8012")
+
   // db configuration flags
   cmdline.AddOption("", "database.host", "HOST", "host of database")
   cmdline.SetOptionDefault("database.host", "localhost")
+
   cmdline.AddOption("", "database.port", "PORT", "port of database")
   cmdline.SetOptionDefault("database.port", "5432")
+
   cmdline.AddOption("", "database.name", "NAME", "name of database")
   cmdline.SetOptionDefault("database.name", "postgres")
+
   cmdline.AddOption("", "database.username", "USERNAME", "username for database user")
   cmdline.SetOptionDefault("database.username", "postgres")
+
   cmdline.AddOption("", "database.password", "PASSWORD", "password for the database user")
   cmdline.SetOptionDefault("database.password", "postgres")
 
-  cmdline.AddFlag("v", "verbose", "log more information")
   cmdline.Parse(os.Args)
 
   // application general configuration
-  a.Config.Language = cmdline.OptionValue("language")
+  a.Config.Environment    = cmdline.OptionValue("environment")
+  a.Config.Verbosity      = cmdline.OptionValue("verbosity")
+  a.Config.LogFormat      = cmdline.OptionValue("log-format")
+  a.Config.LogHealthcheck = cmdline.IsOptionSet("log-healthcheck")
 
   // a server configuration values
   a.Config.Server.Host = cmdline.OptionValue("server.host")

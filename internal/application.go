@@ -3,14 +3,17 @@ package internal
 import (
   fmt  "fmt"
   http "net/http"
-  log  "log"
+  log  "github.com/sirupsen/logrus"
   _    "github.com/lib/pq"
   mux  "github.com/gorilla/mux"
   sql  "database/sql"
 )
 
 type Configuration struct {
-  Language string
+  Environment    string
+  Verbosity      string
+  LogFormat      string
+  LogHealthcheck bool
   Server struct {
     Host string
     Port string
@@ -41,6 +44,7 @@ type Application struct {
 }
 
 func (a *Application) Initialize() {
+  log.Info("system - application is initializing...")
   connectionString :=
     fmt.Sprintf(
       "host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
@@ -54,11 +58,66 @@ func (a *Application) Initialize() {
   var err error
 
   if a.DB, err = sql.Open("postgres", connectionString); err != nil {
-    log.Println(err)
+    log.Error(err)
   }
 
   a.Router = mux.NewRouter()
+
+  a.initializeLogger()
   a.initializeRoutes()
+
+  log.WithFields(log.Fields{
+    "database_host": a.Config.Database.Host,
+    "database_port": a.Config.Database.Port,
+    "database_username": a.Config.Database.Username,
+    "database_name":   a.Config.Database.Name,
+  }).Info("system - trying to connect to database")
+
+  log.Print("system - application initialized !")
+}
+
+func (a *Application) initializeLogger() {
+  switch a.Config.Verbosity {
+  case "error":
+    log.SetLevel(log.ErrorLevel)
+  case "warning":
+    log.SetLevel(log.WarnLevel)
+  case "info":
+    log.SetLevel(log.InfoLevel)
+  case "debug":
+    log.SetLevel(log.DebugLevel)
+    log.SetReportCaller(false)
+  default:
+    log.WithFields(
+      log.Fields{"verbosity": a.Config.Verbosity},
+    ).Fatal("Unkown verbosity level")
+  }
+
+  switch a.Config.Environment {
+  case "development":
+    log.SetFormatter(&log.TextFormatter{})
+  case "integration":
+    log.SetFormatter(&log.JSONFormatter{})
+  case "production":
+    log.SetFormatter(&log.JSONFormatter{})
+  default:
+    log.WithFields(
+      log.Fields{"environment": a.Config.Environment},
+    ).Fatal("Unkown environment type")
+  }
+
+  if a.Config.LogFormat != "unset" {
+    switch a.Config.LogFormat {
+    case "text":
+      log.SetFormatter(&log.TextFormatter{})
+    case "json":
+      log.SetFormatter(&log.JSONFormatter{})
+    default:
+      log.WithFields(
+        log.Fields{"log_format": a.Config.LogFormat},
+      ).Fatal("Unkown log format")
+    }
+  }
 }
 
 func (a *Application) initializeRoutes() {
@@ -81,7 +140,7 @@ func (a *Application) Run() {
 
   server_message :=
     fmt.Sprintf(
-      a.I18n().StartingApplicationMessage,
+      "Starting needys-api-resource on %s:%s...\n > build time: %s\n > release: %s\n > commit: %s\n",
       a.Config.Server.Host,
       a.Config.Server.Port,
       a.Version.BuildTime,
@@ -89,6 +148,6 @@ func (a *Application) Run() {
       a.Version.Commit,
     )
 
-  log.Println(server_message)
+  log.Info(server_message)
   log.Fatal(http.ListenAndServe(server_address, a.Router))
 }

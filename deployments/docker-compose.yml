@@ -9,6 +9,12 @@ services:
     build:
       context: ../
       dockerfile: build/package/Dockerfile.development
+    environment:
+      ENVIRONMENT: ${NEEDYS_API_RESOURCE_ENVIRONMENT:-development}
+      VERBOSITY: ${NEEDYS_API_RESOURCE_VERBOSITY:-debug}
+      LOG_FORMAT: ${NEEDYS_API_RESOURCE_LOG_FORMAT:-text}
+      LOG_HEALTHCHECK: ${NEEDYS_API_RESOURCE_LOG_FORMAT:-false}
+      OPTIONAL_FLAGS: ${NEEDYS_API_RESOURCE_OPTIONAL_FLAGS:-}
     ports:
       - 8012:8012
     volumes:

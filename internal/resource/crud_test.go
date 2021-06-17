@@ -6,7 +6,6 @@ import (
   httptest "net/http/httptest"
   internal "github.com/gpenaud/needys-api-resource/internal"
   json     "encoding/json"
-  log      "log"
   os       "os"
   testing  "testing"
   // strconv  "strconv"
@@ -45,7 +44,7 @@ func TestMain(m *testing.M) {
 
 func ensureTableExists() {
   if _, err := a.DB.Exec(tableCreationQuery); err != nil {
-    log.Fatal(err)
+    a.Logger.Fatal(err)
   }
 }
 
@@ -63,7 +62,7 @@ func executeRequest(req *http.Request) *httptest.ResponseRecorder {
 
 func checkResponseCode(t *testing.T, expected, actual int) {
   if expected != actual {
-    t.Errorf(a.I18n().UnxpectedResponseCode, expected, actual)
+    t.Errorf("Expected response code %d. Got %d\n", expected, actual)
   }
 }
 
@@ -80,7 +79,7 @@ func TestEmptyTable(t *testing.T) {
   checkResponseCode(t, http.StatusOK, response.Code)
 
   if body := response.Body.String(); body != "[]" {
-    t.Errorf(a.I18n().UnexpectedNonEmptyArray, body)
+    t.Errorf("Expected an empty array. Got %s", body)
   }
 }
 
@@ -159,15 +158,15 @@ func TestUpdateResource(t *testing.T) {
   json.Unmarshal(response.Body.Bytes(), &m)
 
   if m["id"] != originalResource["id"] {
-      t.Errorf(a.I18n().UnexpectedIDNotRemainTheSame, originalResource["id"], m["id"])
+      t.Errorf("Expected the id to remain the same (%v). Got %v", originalResource["id"], m["id"])
   }
 
   if m["type"] != originalResource["type"] {
-      t.Errorf(a.I18n().UnexpectedTypeNotChanged, originalResource["type"], m["type"], m["type"])
+      t.Errorf("Expected the type to change from '%v' to '%v'. Got '%v'", originalResource["type"], m["type"], m["type"])
   }
 
   if m["description"] == originalResource["description"] {
-      t.Errorf(a.I18n().UnexpectedDescriptionNotChanged, originalResource["description"], m["description"], m["description"])
+      t.Errorf("Expected the description to change from '%v' to '%v'. Got '%v'", originalResource["description"], m["description"], m["description"])
   }
 }
 
