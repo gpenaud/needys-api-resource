@@ -1,16 +1,16 @@
 package resource_test
 
 import(
-	bytes  "bytes"
+	bytes    "bytes"
 	colors   "github.com/cucumber/godog/colors"
 	flag     "github.com/spf13/pflag"
 	fmt 		 "fmt"
 	godog    "github.com/cucumber/godog"
 	http 		 "net/http"
 	internal "github.com/gpenaud/needys-api-resource/internal"
+	json 		 "encoding/json"
 	os 			 "os"
 	testing  "testing"
-	"encoding/json"
 )
 
 var application internal.Application
@@ -89,7 +89,9 @@ func iSendRequestTo(method, endpoint string) error {
 	}
 
  	res, err = client.Do(req)
-  if err != nil {
+	defer res.Body.Close()
+
+	if err != nil {
     return fmt.Errorf("could not send request %s", err.Error())
   }
 

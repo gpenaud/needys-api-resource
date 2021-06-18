@@ -54,6 +54,11 @@ type Application struct {
   Version *Version
 }
 
+func (a *Application) isDatabaseReachable() (err error) {
+  _, err = a.DB.Query("SELECT null")
+  return err
+}
+
 func (a *Application) Initialize() {
   connectionString :=
     fmt.Sprintf(
@@ -71,10 +76,9 @@ func (a *Application) Initialize() {
     applicationLog.Error(err)
   }
 
-  a.Router = mux.NewRouter()
-
-  a.initializeLogger()
-  a.initializeRoutes()
+  a.DB.SetMaxIdleConns(3)
+  a.DB.SetMaxOpenConns(10)
+  a.DB.SetConnMaxLifetime(3600 * time.Second)
 
   applicationLog.WithFields(log.Fields{
     "database_host": a.Config.Database.Host,
@@ -82,6 +86,11 @@ func (a *Application) Initialize() {
     "database_username": a.Config.Database.Username,
     "database_name":   a.Config.Database.Name,
   }).Info("trying to connect to database")
+
+  a.Router = mux.NewRouter()
+
+  a.initializeLogger()
+  a.initializeRoutes()
 
   applicationLog.Info("application is initialized")
 }
@@ -154,12 +163,12 @@ func (a *Application) Run(ctx context.Context) {
     fmt.Sprintf(
   `
 
-START INFORMATIONS
-------------------
+START INFOS
+-----------
 Listening needys-api-resource on %s:%s...
 
-BUILD INFORMATIONS
-------------------
+BUILD INFOS
+-----------
 time: %s
 release: %s
 commit: %s
@@ -184,7 +193,6 @@ commit: %s
   }()
 
   <-ctx.Done()
-
   applicationLog.Info("server stopped")
 
 	ctxShutDown, cancel := context.WithTimeout(context.Background(), 5*time.Second)

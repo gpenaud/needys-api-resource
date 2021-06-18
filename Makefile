@@ -77,6 +77,6 @@ test-list:
 test-create:
 	curl -i \
 		-H "Content-Type: application/json" \
-		-d '{"type": "physique", "description": "Du bon gros sexe en chambre"}' \
+		-d '{"type": "physique", "description": "Du bon gros **** en chambre"}' \
 		-X POST \
 	http://localhost:8012/resource
