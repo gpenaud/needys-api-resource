@@ -57,8 +57,17 @@ watch:
 logs:
 	docker-compose ${DOCKER_COMPOSE_OPTIONS} logs --follow
 
+## test - execute all api queries to check results on bash
 .PHONY: test
 test:
+	/bin/sh scripts/test-api.sh --query
+
+## test - execute all unit-tests defined in application
+test-unit:
+	@echo "Stricts unit-tests are not yet implemented !"
+
+## test - execute all cucumber-behavior tests defined in application
+test-behavior:
 	go test -v ./... --godog.format=pretty --godog.random -race -covermode=atomic
 
 ## docker - build the needys-api-resource image
